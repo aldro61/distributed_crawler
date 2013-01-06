@@ -2,6 +2,11 @@
 '''
 This is a basic implementation of a crawler written in Python. It is incomplete, but attempts
 to validate if Python is suitable to be used for this task.
+
+Notes:
+    Does not yet handle:
+        * Crawling for files using REs
+        * Validating that a file is not already in the index before downloading it
 '''
 __author__ = 'Alexandre Drouin'
 
