@@ -7,6 +7,10 @@ Notes:
     Does not yet handle:
         * Crawling for files using REs
         * Validating that a file is not already in the index before downloading it
+        * Crawling in parallel using multiple processes to consume the urls from to_visit.
+
+    * The Queue data structure is fully thread safe
+    * The multiprocessing package bypasses the GIL and allows the use of all CPUs on a machine
 '''
 __author__ = 'Alexandre Drouin'
 
