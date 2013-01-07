@@ -19,15 +19,17 @@ import Queue
 import re
 import StringIO
 import sys
+import time
 import urllib2
 import zlib
 
 from bs4 import BeautifulSoup
 from multiprocessing import Pool
 from bs4 import SoupStrainer
-from urlparse import urljoin, urlparse, urlunparse
-from urllib import unquote
 from string import lower
+from urlparse import urljoin, urlparse, urlunparse
+from urlnorm import norms as normalize_url
+from urllib import unquote
 
 simulated_index = Queue.Queue()
 
@@ -41,69 +43,6 @@ class Document():
     def __init__(self, url, content):
         self.url = url
         self.content = content
-
-
-
-_collapse = re.compile('([^/]+/\.\./?|/\./|//|/\.$|/\.\.$)')
-_server_authority = re.compile('^(?:([^\@]+)\@)?([^\:]+)(?:\:(.+))?$')
-_default_port = {   'http': '80',
-                    'https': '443',
-                    'gopher': '70',
-                    'news': '119',
-                    'snews': '563',
-                    'nntp': '119',
-                    'snntp': '563',
-                    'ftp': '21',
-                    'telnet': '23',
-                    'prospero': '191',
-                    }
-_relative_schemes = [   'http',
-                        'https',
-                        'news',
-                        'snews',
-                        'nntp',
-                        'snntp',
-                        'ftp',
-                        'file',
-                        ''
-]
-_server_authority_schemes = [   'http',
-                                'https',
-                                'news',
-                                'snews',
-                                'ftp',
-                                ]
-
-
-def normalize_url(urlstring):
-    """given a string URL, return its normalised form"""
-    return urlunparse(norm(urlparse(urlstring)))
-
-
-def norm(urltuple):
-    """given a six-tuple URL, return its normalised form"""
-    (scheme, authority, path, parameters, query, fragment) = urltuple
-    scheme = lower(scheme)
-    if authority:
-        userinfo, host, port = _server_authority.match(authority).groups()
-        if host[-1] == '.':
-            host = host[:-1]
-        authority = lower(host)
-        if userinfo:
-            authority = "%s@%s" % (userinfo, authority)
-        if port and port != _default_port.get(scheme, None):
-            authority = "%s:%s" % (authority, port)
-    if scheme in _relative_schemes:
-        last_path = path
-        while 1:
-            path = _collapse.sub('/', path, 1)
-            if last_path == path:
-                break
-            last_path = path
-    path = unquote(path)
-    return scheme, authority, path, parameters, query, fragment
-
-
 
 
 def decode(page):
@@ -126,7 +65,7 @@ def decode(page):
     return content
 
 
-def open(url):
+def open(url, prohibited_types):
     """
     Opens a URL and return's its content.
     Note that in our requests, we prefer gzipped content, since
@@ -140,12 +79,24 @@ def open(url):
     url -- The url to open
     """
     opener = urllib2.build_opener()
-    opener.addheaders = [('User-Agent','graal-crawl beta'),
-                        ('Accept-Encoding', 'gzip,deflate')]
-    usock = opener.open(url)
-    usock.geturl()
-    data = decode(usock)
+    opener.addheaders = [('User-Agent', 'graal-crawl beta'),
+                         ('Accept-Encoding', 'gzip,deflate')]
+
+    usock = opener.open(url, timeout=2)
+    url = usock.geturl()
+
+    dont_download = False
+    for type in prohibited_types:
+        if type in usock.headers.type:
+            dont_download = True
+            break
+
+    if not dont_download:
+        data = decode(usock)
+    else:
+        data = "<html></html>"
     usock.close()
+
     return data
 
 
@@ -157,7 +108,7 @@ def download_doc(url):
 
     url -- The file's URL
     """
-    html = open(url)
+    html = open(url, [])
     soup = BeautifulSoup(html)
     return Document(url, soup.get_text())
 
@@ -185,8 +136,9 @@ def crawl_url(url, crawl_frontier, found_files, search_extensions, visited):
     crawl_frontier -- A reference to a queue of URLs to visit
     found_files -- A reference to a queue of files flagged for download
     search_extensions -- A list of extensions of files which must be flagged for download
+    visited -- A dictionnary containing the visited URLs
     """
-    html = open(url)
+    html = open(url, prohibited_types=['image', 'application'])
     links = SoupStrainer('a')
     soup = BeautifulSoup(html, parse_only=links)
     for link in soup.find_all('a'):
@@ -200,8 +152,9 @@ def crawl_url(url, crawl_frontier, found_files, search_extensions, visited):
             #Already visited check
             if not visited.has_key(href):
                 crawl_frontier._put(href)
-                visited[href] = 1
+                visited[href] = int(time.time())
 
+            #Check if the file has the extension we are looking for
             for ext in search_extensions:
                 if href[-len(ext):] == ext:
                     found_files.put(href)
@@ -221,7 +174,8 @@ if __name__ == "__main__":
     #All found URLs are also added to a visit queue called to_visit
     while not crawl_frontier.empty():
         url = crawl_frontier._get()
-        print 'Crawling ' + url + "    crawl_frontier size: " + str(crawl_frontier.qsize()) + "   found_files_size: " + str(
+        print 'Crawling ' + url + "    crawl_frontier size: " + str(
+            crawl_frontier.qsize()) + "   found_files_size: " + str(
             found_files.qsize())
         try:
             crawl_url(url, crawl_frontier, found_files, search_extensions=['.txt'], visited=visited)
@@ -232,8 +186,9 @@ if __name__ == "__main__":
         #to download as they are added to the download queue. Here, for test purposes,
         #we do not use such processes, therefore we stop searching for files when we
         #have collected a given number.
-        if found_files.qsize() > 5:
-            print "Stopped with queue size of " + str(crawl_frontier.qsize())
+        if found_files.qsize() >= 1:
+            print "Stopped with frontier size of " + str(crawl_frontier.qsize()) + " and " + str(
+                found_files.qsize()) + " found files"
             break
 
     #We define a pool of processes in charge of downloading the files and communicating
@@ -246,11 +201,12 @@ if __name__ == "__main__":
 
     #To assess the performance of our crawler, we display the content of the files
     #contained in the index.
+    print simulated_index.qsize()
     while not simulated_index.empty():
         document = simulated_index._get()
-        print "*"*20
+        print "*" * 20
         print document.url
-        print document.content
+        #print document.content
         print
 
     print "Completed!"
