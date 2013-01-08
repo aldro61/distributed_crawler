@@ -7,7 +7,7 @@ if __name__ == "__main__":
     #of files in a very short lapse of time. Let it run for a day and you will proba-
     #bly bust your ISP download limit for the month. Just saying... ;)
 
-    #Instantiate a Crawler object using 40 spider processes and 10 document processing processes.
+    #Instantiate a Crawler object using 50 spider processes and 20 document processing processes.
     #This crawler searches for plain text files to index.
     myCrawler = Crawler(n_spiders=50,
         n_document_processors=20,
