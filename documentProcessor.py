@@ -1,7 +1,7 @@
 __author__ = 'Alexandre'
 
 from bs4 import BeautifulSoup
-from urlparse import urljoin
+from urlparse import urljoin, urlparse
 from urlnorm import url_normalize as normalize_url
 
 class DocumentProcessor:
@@ -29,6 +29,32 @@ class DocumentProcessor:
         self.index = index
         self.indexable_content_types = indexable_content_types
 
+        self.authorized_extensions = ['dtd',
+                                      'rna',
+                                      'xml',
+                                      'html',
+                                      'htm',
+                                      'xhtml',
+                                      'xht',
+                                      'mht',
+                                      'mhtml',
+                                      'maff',
+                                      'asp',
+                                      'aspx',
+                                      'bml',
+                                      'cfm',
+                                      'cgi',
+                                      'ihtml',
+                                      'jsp',
+                                      'las',
+                                      'lasso',
+                                      'lassoapp',
+                                      'pl',
+                                      'php',
+                                      'phtml',
+                                      'shtml',
+                                      'stm']
+
     def __call__(self, visited_cache_lock):
         """
         Main routine of a document processor.
@@ -40,7 +66,8 @@ class DocumentProcessor:
                 if 'text/html' in content_type:
                     for u in self.get_urls(url, document):
                         visited_cache_lock.acquire()
-                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u) and not self.in_domain_do_not_crawl_list(url):
+                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u) and\
+                           not self.in_domain_do_not_crawl_list(url):
                             self.visited_cache[u] = 1
                             self.frontier.put(u)
                             #print "Added ", u, " to the frontier"
@@ -69,16 +96,31 @@ class DocumentProcessor:
 
         Note: Must be implemented. Currently allow's anything
         """
-        return True
+        filename = urlparse(url).path.split('/')
+
+        if filename[-1] == "":
+            return True
+        else:
+            extension = filename[-1].split('.')[-1]
+            for c in self.indexable_content_types:
+                if c[0] == extension:
+                    return True
+
+            for ext in self.authorized_extensions:
+                if ext == extension:
+                    return True
+        return False
 
     def in_domain_do_not_crawl_list(self, url):
         """
         Verifies if the domain for a URL is in the do not crawl list
         """
-        if 'arxiv.org' in url or 'wordpress' in url:
+        if 'arxiv' in url or 'wordpress' in url:
             return True
         else:
             return False
+
+    #TODO: handle a robots.txt cache and download the robot.txt on cache miss. Use robotparse to parse.
 
     def get_urls(self, url, document):
         """

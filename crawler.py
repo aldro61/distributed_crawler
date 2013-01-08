@@ -24,6 +24,11 @@ class Crawler:
                                the found URLs to the frontier and finally, submits
                                appropriate files for indexation based on their content-
                                type.
+
+
+    WARNING: The current implementation does not have a politeness mechanism. Please be careful and use
+    this code at your own risks. To slow down the rate of web requests sent to servers, I have temporarely
+    placed a sleep(2) instruction in the spider's code.
     """
 
     def __init__(self, n_spiders=1, n_document_processors=1, seeds=None, indexable_content_types=None):
