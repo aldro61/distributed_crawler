@@ -1,5 +1,5 @@
 __author__ = 'Alexandre'
-from multiprocessing import Queue
+from multiprocessing import Manager
 
 class Frontier:
     """
@@ -7,7 +7,7 @@ class Frontier:
     """
 
     def __init__(self):
-        self.queue = Queue()
+        self.queue = Manager().Queue()
 
     def put(self, url):
         """

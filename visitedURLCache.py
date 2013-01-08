@@ -16,6 +16,7 @@ class VisitedURLCache:
         url -- The URL to add to mark as visited
         """
         self.storage[url] = time()
+        print self.storage.keys()
 
     def already_visited(self, url):
         """

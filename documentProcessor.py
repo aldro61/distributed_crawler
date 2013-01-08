@@ -33,23 +33,24 @@ class DocumentProcessor:
         """
         Main routine of a document processor.
         """
-        print 'Document processor ', self.document_processor_id, ' started.'
         while True:
             url, document, content_type = self.document_store.get()
-
+            #print "PROCESSING DOCUMENT: ", url
             if content_type is not None:
                 if 'text/html' in content_type:
                     for u in self.get_urls(url, document):
                         visited_cache_lock.acquire()
-                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u):
+                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u) and not self.in_domain_do_not_crawl_list(url):
                             self.visited_cache[u] = 1
                             self.frontier.put(u)
+                            #print "Added ", u, " to the frontier"
                         visited_cache_lock.release()
 
                 #Check if the document should be indexed
                 if self.index_content_type_allowed(content_type):
                     print "Indexing ", url
                     self.index.put(url, document, content_type)
+            #print "DOCUMENT PROCESSED: ", url
 
     def index_content_type_allowed(self, content_type):
         """
@@ -70,6 +71,15 @@ class DocumentProcessor:
         """
         return True
 
+    def in_domain_do_not_crawl_list(self, url):
+        """
+        Verifies if the domain for a URL is in the do not crawl list
+        """
+        if 'arxiv.org' in url or 'wordpress' in url:
+            return True
+        else:
+            return False
+
     def get_urls(self, url, document):
         """
         Gets all the URLs in a document and returns them as absolute URLs.
@@ -84,10 +94,10 @@ class DocumentProcessor:
             href = link.get('href')
             if href is not None:
                 try:
-                    href = normalize_url(href)
                     #Convert relative urls to absolute urls
                     if not href.startswith('http'):
                         href = urljoin(url, href)
+                    href = normalize_url(href)
 
                     urls.append(href)
                 except:

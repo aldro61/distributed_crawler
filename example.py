@@ -10,9 +10,9 @@ if __name__ == "__main__":
     #Instantiate a Crawler object using 40 spider processes and 10 document processing processes.
     #This crawler searches for plain text files to index.
     myCrawler = Crawler(n_spiders=40,
-        n_document_processors=20,
-        seeds=['http://textfiles.com/100/'],
-        indexable_content_types=[('txt', 'text/plain')]
+        n_document_processors=10,
+        seeds=['http://graal.ift.ulaval.ca'],
+        indexable_content_types=[('pdf', 'application/pdf')]
     )
     #For more Mime types, please refer to the following link:
     #http://reference.sitepoint.com/html/mime-types-full

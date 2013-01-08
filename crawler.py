@@ -37,16 +37,17 @@ class Crawler:
         if not seeds: seeds = []
         self.frontier = Frontier()
         self.document_store = DocumentStore()
-        self.visited_cache = {}
+        self.visited_cache = Manager().dict()
         self.index = Index()
         self.n_spiders = n_spiders
         self.n_document_processors = n_document_processors
         self.indexable_content_types = indexable_content_types
         self.spiders = []
         self.document_processors = []
-
+        self.seed_urls = seeds
         for seed_url in seeds:
             self.frontier.put(seed_url)
+            self.visited_cache[seed_url] = 1
 
     def run(self):
         #Start the spider processes
@@ -56,10 +57,10 @@ class Crawler:
             spider_process.daemon = True
             self.spiders.append(spider_process)
             spider_process.start()
+        print 'Spider all started.'
 
         #Start the document processor processes
         visited_cache_lock = Lock()
-        self.visited_cache = Manager().dict()
         for i in xrange(self.n_document_processors):
             doc_processor_instance = DocumentProcessor(i,
                 self.frontier,
@@ -71,6 +72,7 @@ class Crawler:
             doc_processor_process.daemon = True
             self.document_processors.append(doc_processor_process)
             doc_processor_process.start()
+        print 'Document processors all started.'
 
     def stop(self):
         #Stop all spiders

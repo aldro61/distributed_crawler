@@ -22,15 +22,16 @@ class Spider:
         """
         Main routine of a spider.
         """
-        print 'Spider ', self.spider_id, ' started.'
         while True:
             job = self.frontier.get()
             for url in job.urls:
                 try:
+                    #print "ATTEMPTING TO DOWNLOAD ", url
                     document, content_type = self.download_document(url)
                     self.document_store.put(url, document, content_type)
                     #print "Added ", url, " to the document store."
-                except:
+                except Exception as e:
+                    print "FAILED TO DOWNLOAD ", url, " reason: ", e
                     pass
 
     def download_document(self, url):
