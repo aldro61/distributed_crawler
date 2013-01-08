@@ -9,8 +9,8 @@ if __name__ == "__main__":
 
     #Instantiate a Crawler object using 40 spider processes and 10 document processing processes.
     #This crawler searches for plain text files to index.
-    myCrawler = Crawler(n_spiders=10,
-        n_document_processors=4,
+    myCrawler = Crawler(n_spiders=50,
+        n_document_processors=20,
         seeds=['http://graal.ift.ulaval.ca'],
         indexable_content_types=[('txt', 'text/plain'),
                                  ('bib', 'text/plain')]
