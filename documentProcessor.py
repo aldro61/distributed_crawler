@@ -2,7 +2,7 @@ __author__ = 'Alexandre'
 
 from bs4 import BeautifulSoup
 from urlparse import urljoin
-from urlnorm import norms as normalize_url
+from urlnorm import url_normalize as normalize_url
 
 class DocumentProcessor:
     """
@@ -29,7 +29,7 @@ class DocumentProcessor:
         self.index = index
         self.indexable_content_types = indexable_content_types
 
-    def __call__(self):
+    def __call__(self, visited_cache_lock):
         """
         Main routine of a document processor.
         """
@@ -40,10 +40,11 @@ class DocumentProcessor:
             if content_type is not None:
                 if 'text/html' in content_type:
                     for u in self.get_urls(url, document):
-                        if self.frontier_extension_allowed(u) and not self.visited_cache.already_visited(u):
-                            #print 'Added ', u, ' to frontier.'
-                            self.visited_cache.put(u)
+                        visited_cache_lock.acquire()
+                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u):
+                            self.visited_cache[u] = 1
                             self.frontier.put(u)
+                        visited_cache_lock.release()
 
                 #Check if the document should be indexed
                 if self.index_content_type_allowed(content_type):
@@ -82,11 +83,14 @@ class DocumentProcessor:
         for link in soup.find_all('a'):
             href = link.get('href')
             if href is not None:
-                href = normalize_url(href)
-                #Convert relative urls to absolute urls
-                if not href.startswith('http'):
-                    href = urljoin(url, href)
+                try:
+                    href = normalize_url(href)
+                    #Convert relative urls to absolute urls
+                    if not href.startswith('http'):
+                        href = urljoin(url, href)
 
-                urls.append(href)
+                    urls.append(href)
+                except:
+                    pass
 
         return urls

@@ -1,6 +1,6 @@
 __author__ = 'Alexandre'
-import multiprocessing
 
+from multiprocessing import Process, Lock, Manager
 from frontier import Frontier
 from spider import Spider
 from documentProcessor import DocumentProcessor
@@ -37,7 +37,7 @@ class Crawler:
         if not seeds: seeds = []
         self.frontier = Frontier()
         self.document_store = DocumentStore()
-        self.visited_cache = VisitedURLCache()
+        self.visited_cache = {}
         self.index = Index()
         self.n_spiders = n_spiders
         self.n_document_processors = n_document_processors
@@ -52,12 +52,14 @@ class Crawler:
         #Start the spider processes
         for i in xrange(self.n_spiders):
             spider_instance = Spider(i, self.frontier, self.document_store)
-            spider_process = multiprocessing.Process(target=spider_instance)
+            spider_process = Process(target=spider_instance)
             spider_process.daemon = True
             self.spiders.append(spider_process)
             spider_process.start()
 
         #Start the document processor processes
+        visited_cache_lock = Lock()
+        self.visited_cache = Manager().dict()
         for i in xrange(self.n_document_processors):
             doc_processor_instance = DocumentProcessor(i,
                 self.frontier,
@@ -65,7 +67,7 @@ class Crawler:
                 self.visited_cache,
                 self.index,
                 self.indexable_content_types)
-            doc_processor_process = multiprocessing.Process(target=doc_processor_instance)
+            doc_processor_process = Process(target=doc_processor_instance, args=(visited_cache_lock,))
             doc_processor_process.daemon = True
             self.document_processors.append(doc_processor_process)
             doc_processor_process.start()

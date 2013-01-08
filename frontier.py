@@ -13,7 +13,6 @@ class Frontier:
         """
         Add a URL to the frontier.
 
-
         url -- The URL to add to the frontier
         """
         self.queue.put(url)

@@ -29,6 +29,7 @@ class Spider:
                 try:
                     document, content_type = self.download_document(url)
                     self.document_store.put(url, document, content_type)
+                    #print "Added ", url, " to the document store."
                 except:
                     pass
 
