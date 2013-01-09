@@ -62,7 +62,7 @@ class Crawler:
             spider_process.daemon = True
             self.spiders.append(spider_process)
             spider_process.start()
-        print 'Spider all started.'
+        print 'Spiders all started.'
 
         #Start the document processor processes
         visited_cache_lock = Lock()
