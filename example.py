@@ -19,7 +19,7 @@ if __name__ == "__main__":
     #http://reference.sitepoint.com/html/mime-types-full
 
     #Start the crawler
-    myCrawler.run()
+    myCrawler.start()
 
     raw_input("Press Enter to stop crawling...\n")
 

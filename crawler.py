@@ -5,7 +5,6 @@ from frontier import Frontier
 from spider import Spider
 from documentProcessor import DocumentProcessor
 from documentStore import DocumentStore
-from visitedURLCache import VisitedURLCache
 from index import Index
 
 
@@ -53,9 +52,121 @@ class Crawler:
         for seed_url in seeds:
             self.frontier.put(seed_url)
             self.visited_cache[seed_url] = 1
+        self.status = 'STOPPED'
 
-    def run(self):
+    def start(self):
+        """
+        Starts the crawler
+        """
+        if self.status != "STOPPED":
+            raise Exception("Attempted to start a crawler that was not stopped.")
+
+        self._start_spiders()
+        print 'Spider all started.'
+
+        #Start the document processor processes
+        self._start_document_processors()
+        print 'Document processors all started.'
+
+        self.status = "RUNNING"
+        print "Started."
+
+
+    def stop(self):
+        """
+        Stops the crawler and resets the current instance to
+        it's initialisation parameter values.
+        """
+        if self.status != "RUNNING":
+            raise Exception('Attempted to stop a crawler that was not running.')
+
+        #Stop all spiders
+        print 'Stopping spiders.'
+        for spider in self.spiders:
+            spider.terminate()
+
+        #Stop all document processors
+        print 'Stopping document processors.'
+        for doc_processor in self.document_processors:
+            doc_processor.terminate()
+
+        self.status = "STOPPED"
+        self.__init__(self.n_spiders, self.n_document_processors, self.seed_urls, self.indexable_content_types)
+        print 'Stopped.'
+
+    def restart(self):
+        """
+        Stops the crawler, resets the current instance to
+        it's initialisation parameter values and starts the
+        new instance.
+        """
+        if self.status != "RUNNING" and self.status != "PAUSED":
+            raise Exception('Attempted to stop a crawler that was not running.')
+
+        if self.status == "RUNNING":
+            self.stop()
+
+        self.__init__(self.n_spiders, self.n_document_processors, self.seed_urls, self.indexable_content_types)
+        self.start()
+        print 'Restarted.'
+
+    def pause(self):
+        """
+        Stops the crawler and preserves the current
+        instance's values (ex: caches, frontier)
+
+        Use myCrawler.resume() to resume crawling
+
+        Note: The files that were in the process of being processed by a
+              spider or document processor instance will be lost. (Future works)
+        """
+        if self.status != "RUNNING":
+            raise Exception('Attempted to pause a crawler that was not running.')
+
+        self._stop_crawling()
+        self.status = "PAUSED"
+        print "Paused."
+
+    def resume(self):
+        """
+        Resumes the activity of a paused crawler
+        """
+        if self.status != "PAUSED":
+            raise Exception('Attempted to resume a crawler that was not paused.')
+
+        self._start_spiders()
+        self._start_document_processors()
+
+        self.status = "RUNNING"
+        print 'Resumed.'
+
+    def request_crawl(self, url):
+        """
+        Request for a url to be crawled
+        """
+        # should verify format
+        self.frontier.put(url)
+
+    def _stop_crawling(self):
+        """
+        Stops all spider and document processor processes
+        """
+        #Stop all spiders
+        print 'Stopping spiders.'
+        for spider in self.spiders:
+            spider.terminate()
+
+        #Stop all document processors
+        print 'Stopping document processors.'
+        for doc_processor in self.document_processors:
+            doc_processor.terminate()
+
+    def _start_spiders(self):
+        """
+        Starts all spider processes
+        """
         #Start the spider processes
+        self.spiders = []
         for i in xrange(self.n_spiders):
             spider_instance = Spider(i, self.frontier, self.document_store)
             spider_process = Process(target=spider_instance)
@@ -64,7 +175,12 @@ class Crawler:
             spider_process.start()
         print 'Spider all started.'
 
+    def _start_document_processors(self):
+        """
+        Starts all document processor processes
+        """
         #Start the document processor processes
+        self.document_processors = []
         visited_cache_lock = Lock()
         for i in xrange(self.n_document_processors):
             doc_processor_instance = DocumentProcessor(i,
@@ -77,26 +193,3 @@ class Crawler:
             doc_processor_process.daemon = True
             self.document_processors.append(doc_processor_process)
             doc_processor_process.start()
-        print 'Document processors all started.'
-
-    def stop(self):
-        #Stop all spiders
-        print 'Stopping spiders.'
-        for spider in self.spiders:
-            spider.terminate()
-
-        #Stop all document processors
-        print 'Stopping document processors.'
-        for doc_processor in self.document_processors:
-            doc_processor.terminate()
-        print 'Done.'
-
-    def request_crawl(self, url):
-        """
-        Request for a url to be crawled
-        """
-        # should verify format
-        self.frontier.put(url)
-
-
-
