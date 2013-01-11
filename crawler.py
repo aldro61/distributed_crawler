@@ -54,6 +54,7 @@ class Crawler:
             self.visited_cache[seed_url] = 1
         self.status = 'STOPPED'
 
+
     def start(self):
         """
         Starts the crawler

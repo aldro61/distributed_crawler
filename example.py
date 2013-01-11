@@ -12,7 +12,8 @@ if __name__ == "__main__":
     myCrawler = Crawler(n_spiders=50,
         n_document_processors=20,
         seeds=['http://graal.ift.ulaval.ca'],
-        indexable_content_types=[('txt', 'text/plain'),
+        indexable_content_types=[('pdf', 'application/pdf'),
+                                 ('txt', 'text/plain'),
                                  ('bib', 'text/plain')]
     )
     #For more Mime types, please refer to the following link:

@@ -93,8 +93,6 @@ class DocumentProcessor:
     def frontier_extension_allowed(self, url):
         """
         Verifies if a URL has a valid extension to be added into the frontier
-
-        Note: Must be implemented. Currently allow's anything
         """
         filename = urlparse(url).path.split('/')
 
