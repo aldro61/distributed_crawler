@@ -24,17 +24,15 @@ class Spider:
         Main routine of a spider.
         """
         while True:
-            job = self.frontier.get()
-            for url in job.urls:
-                try:
-                    #print "ATTEMPTING TO DOWNLOAD ", url
-                    document, content_type = self.download_document(url)
-                    self.document_store.put(url, document, content_type)
-                    print "Added ", url, " to the document store."
-                    sleep(2)
-                except Exception as e:
-                    #print "FAILED TO DOWNLOAD ", url, " reason: ", e
-                    pass
+            url = self.frontier.get()
+            try:
+                #print "ATTEMPTING TO DOWNLOAD ", url
+                document, content_type = self.download_document(url)
+                self.document_store.put((url, document, content_type))
+                print "Added ", url, " to the document store."
+            except Exception as e:
+                #print "FAILED TO DOWNLOAD ", url, " reason: ", e
+                pass
 
     def download_document(self, url):
         """

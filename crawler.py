@@ -1,10 +1,8 @@
 __author__ = 'Alexandre'
 
-from multiprocessing import Process, Lock, Manager
-from frontier import Frontier
+from multiprocessing import Process, Manager
 from spider import Spider
 from documentProcessor import DocumentProcessor
-from documentStore import DocumentStore
 from index import Index
 
 
@@ -39,8 +37,8 @@ class Crawler:
         """
         if not indexable_content_types: indexable_content_types = ['text/html']
         if not seeds: seeds = []
-        self.frontier = Frontier()
-        self.document_store = DocumentStore()
+        self.frontier = Manager().Queue()
+        self.document_store = Manager().Queue()
         self.visited_cache = Manager().dict()
         self.index = Index()
         self.n_spiders = n_spiders
@@ -182,7 +180,7 @@ class Crawler:
         """
         #Start the document processor processes
         self.document_processors = []
-        visited_cache_lock = Lock()
+        visited_cache_lock = Manager().Lock()
         for i in xrange(self.n_document_processors):
             doc_processor_instance = DocumentProcessor(i,
                 self.frontier,
