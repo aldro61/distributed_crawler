@@ -3,6 +3,7 @@ __author__ = 'Alexandre'
 from bs4 import BeautifulSoup
 from urlparse import urljoin, urlparse
 from urlnorm import url_normalize as normalize_url
+from time import time
 
 class DocumentProcessor:
     """
@@ -68,7 +69,7 @@ class DocumentProcessor:
                         visited_cache_lock.acquire()
                         if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u) and\
                            not self.in_domain_do_not_crawl_list(url):
-                            self.visited_cache[u] = 1
+                            self.visited_cache[u] = int(time())
                             self.frontier.put(u)
                             #print "Added ", u, " to the frontier"
                         visited_cache_lock.release()
