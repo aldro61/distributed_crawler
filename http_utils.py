@@ -4,10 +4,7 @@ This file contains useful methods for downloading web content
 
 __author__ = 'Alexandre'
 
-import gzip
-import StringIO
-import urllib2
-import zlib
+import requests
 
 def open(url):
     """
@@ -15,40 +12,23 @@ def open(url):
     Note that in our requests, we prefer gzipped content, since
     the time required to download the content is greatly reduced.
     This allows our crawler to be significantly faster than if it
-    used urllib2 to download the uncompressed content at an URL.
+    were downloading the uncompressed content at an URL.
     The uncompression requires more CPU activity, but the true
     bottleneck in this situation is the time required to download
     the files.
 
     url -- The url to open
     """
+    headers = {'User-Agent': 'distributed crawler v1.0',
+               'Accept-Encoding': 'gzip,deflate'}
 
-    def decode(page):
-        """
-        Decodes the content of a gzipped web response.
+    try:
+        request = requests.get(url, headers=headers, timeout=10)
+        data = request.content
+        content_type = request.headers['content-type']
+    except Exception as e:
+        print e
+        data = ''
+        content_type = None
 
-        page -- The web response
-        """
-        encoding = page.info().get("Content-Encoding")
-        if encoding in ('gzip', 'x-gzip', 'deflate'):
-            content = page.read()
-            if encoding == 'deflate':
-                data = StringIO.StringIO(zlib.decompress(content))
-            else:
-                data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(content))
-            content = data.read()
-        else:
-            content = page.read()
-
-        return content, page.info().get("Content-Type")
-
-    opener = urllib2.build_opener()
-    opener.addheaders = [('User-Agent', 'graal-crawl beta'),
-                         ('Accept-Encoding', 'gzip,deflate')]
-
-    usock = opener.open(url, timeout=4)
-    url = usock.geturl()
-    data = decode(usock)
-    usock.close()
-
-    return data
+    return data, content_type

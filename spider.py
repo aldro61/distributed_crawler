@@ -27,15 +27,9 @@ class Spider:
             url = self.frontier.get()
             try:
                 #print "ATTEMPTING TO DOWNLOAD ", url
-                document, content_type = self.download_document(url)
+                document, content_type = open(url)
                 self.document_store.put((url, document, content_type))
                 print "Added ", url, " to the document store."
             except Exception as e:
                 #print "FAILED TO DOWNLOAD ", url, " reason: ", e
                 pass
-
-    def download_document(self, url):
-        """
-        Download the document located at a URL
-        """
-        return open(url)
