@@ -1,10 +1,11 @@
 __author__ = 'Alexandre'
 
+import shelve
+from os.path import isfile
 from multiprocessing import Process, Manager
 from spider import Spider
 from documentProcessor import DocumentProcessor
 from index import Index
-
 
 class Crawler:
     """
@@ -39,7 +40,8 @@ class Crawler:
         if not seeds: seeds = []
         self.frontier = Manager().Queue()
         self.document_store = Manager().Queue()
-        self.visited_cache = Manager().dict()
+        self.visited_cache_path = 'visited_cache'
+        self.visited_cache = None
         self.index = Index()
         self.n_spiders = n_spiders
         self.n_document_processors = n_document_processors
@@ -49,7 +51,6 @@ class Crawler:
         self.seed_urls = seeds
         for seed_url in seeds:
             self.frontier.put(seed_url)
-            self.visited_cache[seed_url] = 1
         self.status = 'STOPPED'
 
 
@@ -59,6 +60,8 @@ class Crawler:
         """
         if self.status != "STOPPED":
             raise Exception("Attempted to start a crawler that was not stopped.")
+
+        self.visited_cache = shelve.open(self.visited_cache_path, 'n')
 
         self._start_spiders()
         print 'Spider all started.'
@@ -91,6 +94,7 @@ class Crawler:
 
         self.status = "STOPPED"
         self.__init__(self.n_spiders, self.n_document_processors, self.seed_urls, self.indexable_content_types)
+        self.visited_cache.close()
         print 'Stopped.'
 
     def restart(self):
