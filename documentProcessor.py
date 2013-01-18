@@ -71,13 +71,14 @@ class DocumentProcessor:
             if content_type is not None:
                 if 'text/html' in content_type:
                     for u in self.get_urls(url, document):
-                        extension_allowed = self.frontier_extension_allowed(u)
-                        do_not_crawl_url = self.in_do_not_crawl_list(u)
                         visited_cache_lock.acquire()
-                        if not self.visited_cache.has_key(u) and extension_allowed and not do_not_crawl_url:
-                            self.visited_cache[u] = int(time())
-                            self.frontier.put(u)
-                            #print "Added ", u, " to the frontier"
+                        if not self.visited_cache.has_key(u):
+                            extension_allowed = self.frontier_extension_allowed(u)
+                            do_not_crawl_url = self.in_do_not_crawl_list(u)
+                            if extension_allowed and not do_not_crawl_url:
+                                self.visited_cache[u] = int(time())
+                                self.frontier.put(u)
+                                #print "Added ", u, " to the frontier"
                         visited_cache_lock.release()
 
                 #Check if the document should be indexed
