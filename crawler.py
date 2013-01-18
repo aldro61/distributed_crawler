@@ -29,12 +29,19 @@ class Crawler:
     placed a sleep(2) instruction in the spider's code.
     """
 
-    def __init__(self, n_spiders=1, n_document_processors=1, seeds=None, indexable_content_types=None):
+    def __init__(self,
+                 n_spiders=1,
+                 n_document_processors=1,
+                 seeds=None,
+                 indexable_content_types=None,
+                 do_not_crawl=[]):
         """
         n_spiders -- The number of spider processes to use
         n_document_processors -- The number of document processors to use
         seeds -- A list of initial URLs to crawl
         indexable_content_types -- A list of MIME content-types for which files should be indexed
+        do_not_crawl -- A list of regular expressions for which matching domain names will not
+                        be crawled
         """
         if not indexable_content_types: indexable_content_types = ['text/html']
         if not seeds: seeds = []
@@ -49,6 +56,7 @@ class Crawler:
         self.spiders = []
         self.document_processors = []
         self.seed_urls = seeds
+        self.do_not_crawl = do_not_crawl
         for seed_url in seeds:
             self.frontier.put(seed_url)
         self.status = 'STOPPED'
@@ -93,8 +101,8 @@ class Crawler:
             doc_processor.terminate()
 
         self.status = "STOPPED"
-        self.__init__(self.n_spiders, self.n_document_processors, self.seed_urls, self.indexable_content_types)
         self.visited_cache.close()
+        self.__init__(self.n_spiders, self.n_document_processors, self.seed_urls, self.indexable_content_types)
         print 'Stopped.'
 
     def restart(self):
@@ -191,7 +199,8 @@ class Crawler:
                 self.document_store,
                 self.visited_cache,
                 self.index,
-                self.indexable_content_types)
+                self.indexable_content_types,
+                self.do_not_crawl)
             doc_processor_process = Process(target=doc_processor_instance, args=(visited_cache_lock,))
             doc_processor_process.daemon = True
             self.document_processors.append(doc_processor_process)
