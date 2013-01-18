@@ -1,5 +1,6 @@
 __author__ = 'Alexandre'
 
+import re
 from bs4 import BeautifulSoup
 from urlparse import urljoin, urlparse
 from urlnorm import url_normalize as normalize_url
@@ -14,7 +15,8 @@ class DocumentProcessor:
        desired content-type.
     """
 
-    def __init__(self, document_processor_id, frontier, document_store, visited_cache, index, indexable_content_types):
+    def __init__(self, document_processor_id, frontier, document_store, visited_cache, index, indexable_content_types,
+                do_not_crawl):
         """
         document_processor_id -- The document processor's indentifier
         frontier -- The crawler's frontier
@@ -22,6 +24,8 @@ class DocumentProcessor:
         visited_cache -- The crawler's visited URL cache
         index -- The crawler's index
         indexable_content_types -- Content-types for which files should be indexed
+        do_not_crawl -- A list of regular expressions for which matching domain names will not
+                        be crawled
         """
         self.document_processor_id = document_processor_id
         self.frontier = frontier
@@ -29,6 +33,7 @@ class DocumentProcessor:
         self.visited_cache = visited_cache
         self.index = index
         self.indexable_content_types = indexable_content_types
+        self.do_not_crawl = do_not_crawl
 
         self.authorized_extensions = ['dtd',
                                       'rna',
@@ -66,9 +71,10 @@ class DocumentProcessor:
             if content_type is not None:
                 if 'text/html' in content_type:
                     for u in self.get_urls(url, document):
+                        extension_allowed = self.frontier_extension_allowed(u)
+                        do_not_crawl_url = self.in_do_not_crawl_list(u)
                         visited_cache_lock.acquire()
-                        if self.frontier_extension_allowed(u) and not self.visited_cache.has_key(u) and\
-                           not self.in_domain_do_not_crawl_list(url):
+                        if not self.visited_cache.has_key(u) and extension_allowed and not do_not_crawl_url:
                             self.visited_cache[u] = int(time())
                             self.frontier.put(u)
                             #print "Added ", u, " to the frontier"
@@ -110,14 +116,19 @@ class DocumentProcessor:
                     return True
         return False
 
-    def in_domain_do_not_crawl_list(self, url):
+    def in_do_not_crawl_list(self, url):
         """
         Verifies if the domain for a URL is in the do not crawl list
         """
-        if 'arxiv' in url or 'wordpress' in url:
-            return True
-        else:
+        try:
+            domain = urlparse(url).netloc
+            for r in self.do_not_crawl:
+                if re.match(r, domain):
+                    return True
+        except Exception as e:
+            print e
             return False
+        return False
 
     #TODO: handle a robots.txt cache and download the robot.txt on cache miss. Use robotparse to parse.
 

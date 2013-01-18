@@ -8,13 +8,13 @@ if __name__ == "__main__":
     #bly bust your ISP download limit for the month. Just saying... ;)
 
     #Instantiate a Crawler object using 50 spider processes and 20 document processing processes.
-    #This crawler searches for plain text files to index.
+    #This crawler searches for jpg images to index. The do_not_crawl list could be used to specify
+    #not to crawl *.google.*, but in this case we use a regex to restrict crawling to *.google.*
     myCrawler = Crawler(n_spiders=50,
         n_document_processors=20,
-        seeds=['http://graal.ift.ulaval.ca'],
-        indexable_content_types=[('pdf', 'application/pdf'),
-                                 ('txt', 'text/plain'),
-                                 ('bib', 'text/plain')]
+        seeds=['http://www.google.com'],
+        indexable_content_types=[('jpg', 'image/jpg')],
+        do_not_crawl=['^((?!(\.)(google)(\.)).)*$']
     )
     #For more Mime types, please refer to the following link:
     #http://reference.sitepoint.com/html/mime-types-full
