@@ -1,7 +1,6 @@
 __author__ = 'Alexandre'
 
 from http_utils import open
-from time import sleep
 
 class Spider:
     """
